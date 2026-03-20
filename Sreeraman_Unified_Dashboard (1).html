@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sreeraman Team — Full Analytics Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090f;--surface:#0d1017;--card:#111622;--border:#1c2235;
+  --y:#e8ff57;--t:#4dd9f0;--g:#3effa8;--r:#ff5252;--o:#ff9b3d;--p:#c084fc;--m:#60a5fa;
+  --text:#d8e2f5;--muted:#4e5a78;--muted2:#6b7a9a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;font-size:13px;min-height:100vh}
+
+/* ── HEADER ── */
+.hdr{padding:28px 36px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-end;gap:16px;background:linear-gradient(135deg,rgba(232,255,87,.04),transparent 60%)}
+.hdr h1{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+.hdr h1 em{color:var(--y);font-style:normal}
+.hdr p{color:var(--muted2);font-family:'DM Mono',monospace;font-size:10px;margin-top:5px}
+.hdr-meta{text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.8}
+.hdr-meta strong{color:var(--y);font-weight:500}
+
+/* ── NAV TABS ── */
+.tabs{display:flex;overflow-x:auto;gap:2px;padding:0 36px;background:var(--surface);border-bottom:1px solid var(--border);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:13px 18px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;flex-shrink:0}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--y);border-bottom-color:var(--y)}
+.tab .num{font-size:9px;background:rgba(232,255,87,.12);color:var(--y);padding:1px 5px;border-radius:2px;margin-left:5px}
+
+/* ── SECTIONS ── */
+.sec{display:none;padding:24px 36px 32px}
+.sec.active{display:block}
+.sec-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.sec-hdr h2{font-size:14px;font-weight:700;color:var(--text)}
+.sec-hdr p{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted2);margin-top:4px}
+.src-tag{font-size:9px;font-family:'DM Mono',monospace;padding:4px 10px;border:1px solid var(--border);border-radius:2px;color:var(--muted2);flex-shrink:0}
+
+/* ── KPI BAR ── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.kpi label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);display:block;margin-bottom:6px}
+.kpi .v{font-size:20px;font-weight:800;line-height:1}
+.kpi .sub{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted2);margin-top:4px}
+.y{color:var(--y)} .t{color:var(--t)} .g{color:var(--g)} .r{color:var(--r)} .o{color:var(--o)} .p{color:var(--p)} .m{color:var(--m)}
+
+/* ── GRID ── */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:repeat(4,1fr)}
+.s2{grid-column:span 2}
+.s3{grid-column:span 3}
+
+/* ── CARD ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;position:relative}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:10px 10px 0 0;background:var(--y);opacity:.35}
+.card.ct::before{background:var(--t)}
+.card.cg::before{background:var(--g)}
+.card.cr::before{background:var(--r)}
+.card.co::before{background:var(--o)}
+.card.cp::before{background:var(--p)}
+.card.cm::before{background:var(--m)}
+.ctitle{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.8px;color:var(--muted2);margin-bottom:14px}
+.note{font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--border);line-height:1.6}
+.cw{position:relative}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:11px}
+.tbl th{padding:8px 10px;text-align:left;font-size:9px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);font-weight:500}
+.tbl td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+.tbl tr:last-child td{border:none}
+.tbl tr:hover td{background:rgba(255,255,255,.015)}
+.pill{display:inline-block;padding:2px 8px;border-radius:2px;font-size:10px;font-weight:700}
+.py{background:rgba(232,255,87,.12);color:var(--y)}
+.pt{background:rgba(77,217,240,.12);color:var(--t)}
+.pg{background:rgba(62,255,168,.12);color:var(--g)}
+.pr{background:rgba(255,82,82,.12);color:var(--r)}
+.po{background:rgba(255,155,61,.12);color:var(--o)}
+.pp{background:rgba(192,132,252,.12);color:var(--p)}
+
+@media(max-width:1100px){.g3,.g4{grid-template-columns:1fr 1fr}.s3{grid-column:span 2}}
+@media(max-width:720px){.g2,.g3,.g4{grid-template-columns:1fr}.s2,.s3{grid-column:span 1}.sec{padding:16px 16px 24px}.tabs{padding:0 16px}.hdr{padding:20px 16px}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>BM Sreeraman · <em>Complete Analytics Dashboard</em></h1>
+    <p>// Coimbatore Region · Jan–Aug 2017 &nbsp;|&nbsp; VITALIS Mumbai · Apr 2019 &nbsp;|&nbsp; Doctor Potential Mapping · 3 source files · 29 verified charts</p>
+  </div>
+  <div class="hdr-meta">
+    <div>YTD Primary &nbsp;<strong>₹461.26L</strong></div>
+    <div>vs Target &nbsp;<strong>₹584.05L</strong></div>
+    <div>Achievement &nbsp;<strong style="color:var(--o)">79.0%</strong></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show(0)">1 · Topline<span class="num">3</span></div>
+  <div class="tab" onclick="show(1)">2 · Brands<span class="num">4</span></div>
+  <div class="tab" onclick="show(2)">3 · Q3 Plan<span class="num">3</span></div>
+  <div class="tab" onclick="show(3)">4 · TBM Scorecard<span class="num">4</span></div>
+  <div class="tab" onclick="show(4)">5 · VITALIS ABM<span class="num">3</span></div>
+  <div class="tab" onclick="show(5)">6 · Growth Mgmt<span class="num">3</span></div>
+  <div class="tab" onclick="show(6)">7 · Channel<span class="num">4</span></div>
+  <div class="tab" onclick="show(7)">8 · Potential Map<span class="num">5</span></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 1: TOPLINE
+══════════════════════════════════════════ -->
+<div class="sec active" id="s0">
+  <div class="sec-hdr">
+    <div><h2>Topline Performance — Coimbatore Region, Jan–Aug 2017</h2><p>Source: Aug_Review_deck · Topline Table sheet</p></div>
+    <span class="src-tag">FILE 1</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><label>YTD Primary</label><div class="v y">₹461.26L</div><div class="sub">vs ₹584.05L target</div></div>
+    <div class="kpi"><label>YTD Achievement</label><div class="v o">79.0%</div><div class="sub">vs plan</div></div>
+    <div class="kpi"><label>Best Month</label><div class="v g">Jul '17</div><div class="sub">₹91.19L · 123.9%</div></div>
+    <div class="kpi"><label>Weakest Month</label><div class="v r">Mar '17</div><div class="sub">₹42.15L · 54.9%</div></div>
+    <div class="kpi"><label>Aug Secondary</label><div class="v t">₹78.37L</div><div class="sub">vs ₹79.5L target</div></div>
+  </div>
+  <div class="grid g3">
+    <div class="card s2">
+      <div class="ctitle">Chart 1 — Monthly Primary vs Target vs Secondary (₹ Lacs)</div>
+      <div class="cw"><canvas id="c1_1" height="260"></canvas></div>
+    </div>
+    <div class="card ct">
+      <div class="ctitle">Chart 2 — Monthly Achievement % vs Target</div>
+      <div class="cw"><canvas id="c1_2" height="260"></canvas></div>
+    </div>
+    <div class="card s3">
+      <div class="ctitle">Chart 3 — Month-end Inventory Levels (₹ Lacs)</div>
+      <div class="cw"><canvas id="c1_3" height="180"></canvas></div>
+      <div class="note">Inventory climbed steadily from ₹82.09L (Jan) to ₹122.95L (Aug). Jul–Aug spike driven by Rotateq advance booking and Variped pre-stocking for Sep Q3 push.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 2: BRAND PERFORMANCE
+══════════════════════════════════════════ -->
+<div class="sec" id="s1">
+  <div class="sec-hdr">
+    <div><h2>Brand Performance — Variped · Rotateq · Gardasil · Pneumovax 23</h2><p>Source: Aug_Review_deck · Variped / Rotateq / Gardasil / PNX 23 sheets + Topline Table</p></div>
+    <span class="src-tag">FILE 1</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><label>Variped YTD</label><div class="v y">₹153.67L</div><div class="sub">71.3% of ₹215.50L</div></div>
+    <div class="kpi"><label>Rotateq YTD</label><div class="v t">₹105.80L</div><div class="sub">78.5% of ₹134.75L</div></div>
+    <div class="kpi"><label>Gardasil YTD</label><div class="v p">₹51.51L</div><div class="sub">70.8% of ₹72.73L</div></div>
+    <div class="kpi"><label>Pneumovax YTD</label><div class="v g">₹61.48L</div><div class="sub">70.4% of ₹87.37L</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="ctitle">Chart 4 — Variped Monthly: Primary · Secondary · Target (₹ Lacs)</div>
+      <div class="cw"><canvas id="c2_1" height="240"></canvas></div>
+    </div>
+    <div class="card ct">
+      <div class="ctitle">Chart 5 — Rotateq Monthly: Primary · Secondary · Target (₹ Lacs)</div>
+      <div class="cw"><canvas id="c2_2" height="240"></canvas></div>
+    </div>
+    <div class="card cp">
+      <div class="ctitle">Chart 6 — Gardasil Monthly: Primary · Secondary · Target (₹ Lacs)</div>
+      <div class="cw"><canvas id="c2_3" height="240"></canvas></div>
+      <div class="note">Aug primary = ₹7.63L vs ₹15.48L target (49.3%). Secondary held at ₹8.92L — channel still pulling despite low primary. Confirmed from Topline Table.</div>
+    </div>
+    <div class="card cg">
+      <div class="ctitle">Chart 7 — Pneumovax 23 Monthly: Primary · Secondary · Target (₹ Lacs)</div>
+      <div class="cw"><canvas id="c2_4" height="240"></canvas></div>
+      <div class="note">Jun–Jul breakout: Jun primary ₹18.65L (148.4%), secondary ₹22.58L — strong channel pull-through. Aug primary ₹9.90L = 116.6%.</div>
+    </div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card co s2">
+      <div class="ctitle">Chart 8 — All Brands Monthly Achievement % (Jan–Aug 2017)</div>
+      <div class="cw"><canvas id="c2_5" height="220"></canvas></div>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <div class="ctitle">Brand YTD Summary — Primary · Secondary · Target</div>
+      <table class="tbl">
+        <tr><th>Brand</th><th>YTD Primary</th><th>YTD Secondary</th><th>Primary Ach.</th><th>YTD Target</th><th>Last Year Primary</th><th>Primary Growth vs LY</th></tr>
+        <tr><td>Variped</td><td>₹153.67L</td><td>₹183.52L</td><td><span class="pill po">71.3%</span></td><td>₹215.50L</td><td>₹201.68L</td><td><span class="pill pr">-31%</span></td></tr>
+        <tr><td>Rotateq</td><td>₹105.80L</td><td class="y">₹224.80L</td><td><span class="pill po">78.5%</span></td><td>₹134.75L</td><td>₹134.16L</td><td><span class="pill pr">-30%</span></td></tr>
+        <tr><td>Gardasil</td><td>₹51.51L</td><td>₹80.90L</td><td><span class="pill pr">70.8%</span></td><td>₹72.73L</td><td>₹68.30L</td><td><span class="pill po">-29%</span></td></tr>
+        <tr><td>Pneumovax 23</td><td>₹61.48L</td><td>₹80.84L</td><td><span class="pill pr">70.4%</span></td><td>₹87.37L</td><td>₹49.07L</td><td><span class="pill pg">+25%</span></td></tr>
+      </table>
+      <div class="note">⚠ Rotateq secondary (₹224.80L) is 2.1× its primary (₹105.80L) — the highest secondary-to-primary ratio in the portfolio. Strong channel demand exists but primary ordering is suppressed, likely due to pricing, stocking behaviour or supply constraints. All other brands have secondary broadly in line with or below primary.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 3: Q3 PLANNING
+══════════════════════════════════════════ -->
+<div class="sec" id="s2">
+  <div class="sec-hdr">
+    <div><h2>Q3 Sales Planning — Jul · Aug · Sep 2017 Estimates</h2><p>Source: Aug_Review_deck · Sales Planning sheet</p></div>
+    <span class="src-tag">FILE 1</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><label>Q3 Total Target</label><div class="v t">₹233.66L</div><div class="sub">Jul+Aug+Sep</div></div>
+    <div class="kpi"><label>Q3 Total Estimate</label><div class="v y">₹244.50L</div><div class="sub">104.6% of target</div></div>
+    <div class="kpi"><label>Jul Actual</label><div class="v g">₹91.17L</div><div class="sub">123.9% vs target</div></div>
+    <div class="kpi"><label>Aug Estimate</label><div class="v o">₹70.83L</div><div class="sub">89.1% vs target</div></div>
+    <div class="kpi"><label>Sep Estimate</label><div class="v t">₹82.50L</div><div class="sub">102.4% vs target</div></div>
+  </div>
+  <div class="grid g3">
+    <div class="card s2">
+      <div class="ctitle">Chart 9 — Brand Q3 Target vs Estimate (₹ Lacs)</div>
+      <div class="cw"><canvas id="c3_1" height="260"></canvas></div>
+    </div>
+    <div class="card ct">
+      <div class="ctitle">Chart 10 — Q3 Brand Achievement Est. %</div>
+      <div class="cw"><canvas id="c3_2" height="260"></canvas></div>
+      <div class="note">Gardasil Q3 est. at 81.9% — only brand tracking below 100. Pneumovax strongest at 133.8%.</div>
+    </div>
+    <div class="card co s3">
+      <div class="ctitle">Chart 11 — Month-wise Q3 Execution: Jul Actual · Aug Est. · Sep Est. by Brand (₹ Lacs)</div>
+      <div class="cw"><canvas id="c3_3" height="200"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 4: TBM SCORECARD
+══════════════════════════════════════════ -->
+<div class="sec" id="s3">
+  <div class="sec-hdr">
+    <div><h2>TBM Scorecard — Zone Red &amp; Green · iSales Utilisation</h2><p>Source: Aug_Review_deck · Zone Red &amp; Green sheet + iSales sheet</p></div>
+    <span class="src-tag">FILE 1</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><label>Best PCPM</label><div class="v y">₹10.54L</div><div class="sub">Kiran / Samsudeen</div></div>
+    <div class="kpi"><label>Weakest PCPM</label><div class="v r">₹4.30L</div><div class="sub">Shaju</div></div>
+    <div class="kpi"><label>Best YTD Ach.</label><div class="v g">102%</div><div class="sub">Kiran / Samsudeen / Anil</div></div>
+    <div class="kpi"><label>Worst YTD Ach.</label><div class="v r">41%</div><div class="sub">Shaju</div></div>
+    <div class="kpi"><label>Best YoY Growth</label><div class="v t">+129%</div><div class="sub">Santosh</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="ctitle">Chart 12 — TBM YTD vs Monthly Achievement %</div>
+      <div class="cw"><canvas id="c4_1" height="260"></canvas></div>
+    </div>
+    <div class="card ct">
+      <div class="ctitle">Chart 13 — TBM PCPM Ranking (₹ Lacs per call per month)</div>
+      <div class="cw"><canvas id="c4_2" height="260"></canvas></div>
+    </div>
+    <div class="card co s2">
+      <div class="ctitle">Chart 14 — TBM Brand-wise YTD Achievement: Gardasil · Rotateq · Variped</div>
+      <div class="cw"><canvas id="c4_3" height="220"></canvas></div>
+      <div class="note">Anil & Pneumovax columns blank — no data in source. Shaju: Gardasil 3%, Rotateq 42%, Variped 64%. Critical gaps across all brands.</div>
+    </div>
+    <div class="card cp s2">
+      <div class="ctitle">Chart 15 — iSales Utilisation % by TBM (Jan–Jun 2017, 5 TBMs tracked)</div>
+      <div class="cw"><canvas id="c4_4" height="220"></canvas></div>
+      <div class="note">Only 5 TBMs have iSales data in source (Velmurugan, James, Kumar, Kiran, Samsudeen). Range 85–88% avg utilisation.</div>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <div class="ctitle">TBM Field Metrics Scorecard</div>
+      <table class="tbl">
+        <tr><th>TBM</th><th>YTD Ach</th><th>Month Ach</th><th>YoY Growth</th><th>PCPM (₹L)</th><th>Reach%</th><th>A+B Class%</th><th>Call Avg</th><th>Met Calls%</th></tr>
+        <tr><td>Kiran</td><td><span class="pill pg">102%</span></td><td><span class="pill po">78%</span></td><td class="r">-22%</td><td class="y">10.54</td><td>97%</td><td>91%</td><td>7.8</td><td>97%</td></tr>
+        <tr><td>Samsudeen</td><td><span class="pill pg">102%</span></td><td><span class="pill po">78%</span></td><td class="r">-22%</td><td class="y">10.54</td><td>97%</td><td>74%</td><td>8.2</td><td>97%</td></tr>
+        <tr><td>Kumar</td><td><span class="pill po">80%</span></td><td><span class="pill po">82%</span></td><td class="g">+15%</td><td class="t">7.56</td><td>89%</td><td>82%</td><td>7.9</td><td>89%</td></tr>
+        <tr><td>Prem</td><td><span class="pill po">80%</span></td><td><span class="pill po">82%</span></td><td class="r">-15%</td><td class="t">7.56</td><td>76%</td><td>47%</td><td>6.2</td><td>90%</td></tr>
+        <tr><td>Velmurugan</td><td><span class="pill pr">72%</span></td><td><span class="pill py">103%</span></td><td class="r">-58%</td><td>6.56</td><td>95%</td><td>64%</td><td>9.1</td><td>84%</td></tr>
+        <tr><td>James</td><td><span class="pill pr">72%</span></td><td><span class="pill py">103%</span></td><td class="r">-58%</td><td>6.56</td><td>95%</td><td>55%</td><td>6.6</td><td>95%</td></tr>
+        <tr><td>Santosh</td><td><span class="pill po">83%</span></td><td><span class="pill py">102%</span></td><td class="g">+129%</td><td>6.10</td><td>97%</td><td>94%</td><td>8.4</td><td>94%</td></tr>
+        <tr><td>Anil</td><td><span class="pill pg">102%</span></td><td><span class="pill py">103%</span></td><td class="r">-30%</td><td>6.20</td><td>76%</td><td>22%</td><td>4.3</td><td>50%</td></tr>
+        <tr><td>Shaju</td><td><span class="pill pr">41%</span></td><td><span class="pill py">112%</span></td><td class="r">-33%</td><td class="r">4.30</td><td>91%</td><td>77%</td><td>7.2</td><td>90%</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 5: VITALIS ABM
+══════════════════════════════════════════ -->
+<div class="sec" id="s4">
+  <div class="sec-hdr">
+    <div><h2>VITALIS Daily Report — ABM Performance · PPP Product Mix (Apr 2019)</h2><p>Source: Daily_Report_VITL-DSH-MUMBAI_V5 · hq_wise sheet + ppp sheet</p></div>
+    <span class="src-tag">FILE 2</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><label>Top ABM Sale</label><div class="v g">₹31.04L</div><div class="sub">South Chennai · 119.1%</div></div>
+    <div class="kpi"><label>Highest Growth</label><div class="v y">+73.2%</div><div class="sub">Bhopal YoY</div></div>
+    <div class="kpi"><label>Highest Ach.</label><div class="v t">132%</div><div class="sub">Cochin</div></div>
+    <div class="kpi"><label>Lowest Ach.</label><div class="v r">76%</div><div class="sub">Hyderabad</div></div>
+    <div class="kpi"><label>Highest PPP%</label><div class="v o">83.6%</div><div class="sub">Calicut</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="ctitle">Chart 16 — ABM Sale vs Target (₹ Lacs) — sorted by Sale</div>
+      <div class="cw"><canvas id="c5_1" height="310"></canvas></div>
+    </div>
+    <div class="card ct">
+      <div class="ctitle">Chart 17 — ABM Achievement % vs YoY Growth %</div>
+      <div class="cw"><canvas id="c5_2" height="310"></canvas></div>
+    </div>
+    <div class="card s2 cg">
+      <div class="ctitle">Chart 18 — PPP Products: Sale vs Target vs Last Year (₹ Lacs)</div>
+      <div class="cw"><canvas id="c5_3" height="230"></canvas></div>
+      <div class="note">WARF = Warfarin anticoagulants. RETEFAST tracking below at 86.3% ach, -27.3% vs LY — competitor activity. WARF range performing well: +10 to +21% growth.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 6: GROWTH MANAGEMENT
+══════════════════════════════════════════ -->
+<div class="sec" id="s5">
+  <div class="sec-hdr">
+    <div><h2>Growth Management — Competitor Brand Switching Targets</h2><p>Source: Aug_Review_deck · Growth mgmt + Growth mgmt (2) sheets</p></div>
+    <span class="src-tag">FILE 1</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><label>Rotateq Prospects</label><div class="v y">47</div><div class="sub">docs on comp. brands</div></div>
+    <div class="kpi"><label>Gardasil Prospects</label><div class="v t">24</div><div class="sub">docs on comp. brands</div></div>
+    <div class="kpi"><label>Largest comp. threat</label><div class="v r">Rotarix</div><div class="sub">22 of 47 Rotateq docs</div></div>
+    <div class="kpi"><label>Rotateq total add-on</label><div class="v g">805 units</div><div class="sub">target per month</div></div>
+    <div class="kpi"><label>Gardasil add-on</label><div class="v o">344 units</div><div class="sub">target per month</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="ctitle">Chart 19 — Rotateq Growth: Doctor Potential vs Current MSD vs Add-on Target (first 25 docs)</div>
+      <div class="cw"><canvas id="c6_1" height="310"></canvas></div>
+      <div class="note">Rotateq total target = 47 doctors. Showing top 25 by potential. Rotarix=22 docs, Rotavac=14, Rotasure=6, Rotateq=5.</div>
+    </div>
+    <div class="card ct">
+      <div class="ctitle">Chart 20 — Rotateq: Competitor Brand Distribution (47 docs)</div>
+      <div class="cw"><canvas id="c6_2" height="310"></canvas></div>
+    </div>
+    <div class="card co s2">
+      <div class="ctitle">Chart 21 — Gardasil Growth: Doctor Potential vs Add-on Target (24 docs)</div>
+      <div class="cw"><canvas id="c6_3" height="260"></canvas></div>
+      <div class="note">Indira Thirumurugan highest potential (70 units), Atima highest add-on target (60 units). Total Gardasil add-on target = 344 units/month from these 24 doctors.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 7: CHANNEL MANAGEMENT
+══════════════════════════════════════════ -->
+<div class="sec" id="s6">
+  <div class="sec-hdr">
+    <div><h2>Channel Management — Stockists · Corporate Hospitals · Customer Engagement</h2><p>Source: Aug_Review_deck · Stockist mgmt1 + Corp Hosp + Cust mgmt sheets</p></div>
+    <span class="src-tag">FILE 1</span>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="ctitle">Chart 22 — Rotateq Stockist: Primary vs Secondary vs Inventory (units)</div>
+      <div class="cw"><canvas id="c7_1" height="300"></canvas></div>
+      <div class="note">Palepu-CBE: 807 inv vs 450 primary — overstocked. Deepa-Erode: highest primary at 600. Vac Centre-Madurai: 0 primary, 94 inventory — fulfilment issue.</div>
+    </div>
+    <div class="card ct">
+      <div class="ctitle">Chart 23 — Variped Stockist: Primary vs Secondary vs Inventory (units)</div>
+      <div class="cw"><canvas id="c7_2" height="300"></canvas></div>
+      <div class="note">Vac Point-Madurai: 705 inventory vs only 200 primary — highest overstocking ratio. Lifeon-Cochin: balanced (primary=200, inv=172).</div>
+    </div>
+    <div class="card cr">
+      <div class="ctitle">Chart 24 — Corporate Hospitals: Rotateq — Potential vs MSD vs Competitor (units)</div>
+      <div class="cw"><canvas id="c7_3" height="260"></canvas></div>
+      <div class="note">GKNM urgent: MSD=20 vs Comp=120 on 150 potential. KIMS: 500 potential, MSD 200 vs Comp 300 — competitor lead.</div>
+    </div>
+    <div class="card co">
+      <div class="ctitle">Chart 25 — Corporate Hospitals: Variped — Potential vs MSD vs Competitor (units)</div>
+      <div class="cw"><canvas id="c7_4" height="260"></canvas></div>
+    </div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card cp">
+      <div class="ctitle">Customer Engagement Scorecard — Investment vs Months Engaged (₹)</div>
+      <table class="tbl">
+        <tr><th>Doctor</th><th>Activity</th><th>Investment</th><th>Months Engaged</th><th>Engagement Rate</th></tr>
+        <tr><td>Suma Natrajan</td><td>Class 3 event</td><td class="y">₹50,000</td><td>7/7</td><td><span class="pill pg">100%</span></td></tr>
+        <tr><td>Jesson C Unni</td><td>Class 3 event</td><td class="y">₹30,000</td><td>3/7</td><td><span class="pill po">43%</span></td></tr>
+        <tr><td>Raeshmi</td><td>Class 1 event</td><td>₹20,000</td><td>7/7</td><td><span class="pill pg">100%</span></td></tr>
+        <tr><td>Vijayakumar</td><td>Class 1 event</td><td>₹10,000</td><td>7/7</td><td><span class="pill pg">100%</span></td></tr>
+        <tr><td>Selvaraj</td><td>Class 1 event</td><td>₹10,000</td><td>6/7</td><td><span class="pill pg">86%</span></td></tr>
+        <tr><td>Sundaravadivel</td><td>Class 1 event</td><td>₹10,000</td><td>5/7</td><td><span class="pill py">71%</span></td></tr>
+        <tr><td>Javeed</td><td>Class 1 event</td><td>₹10,000</td><td>3/7</td><td><span class="pill po">43%</span></td></tr>
+        <tr><td><strong>TOTAL</strong></td><td></td><td class="y"><strong>₹1,40,000</strong></td><td></td><td></td></tr>
+      </table>
+      <div class="note">Total investment: ₹1.40L across 7 doctors. 4 doctors at 100% engagement rate represent strong ROI foundation.</div>
+    </div>
+    <div class="card cm">
+      <div class="ctitle">Pneumovax 23 — Top 7 Doctor Monthly Trend (units)</div>
+      <div class="cw"><canvas id="c7_5" height="260"></canvas></div>
+      <div class="note">Rajesh (Chest) Jun spike to 120 units — conference effect. Giri (Diabetes) declining: 80→80→30→30.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 8: POTENTIAL MAPPING
+══════════════════════════════════════════ -->
+<div class="sec" id="s7">
+  <div class="sec-hdr">
+    <div><h2>Doctor Potential Mapping — Pediatrics · Gynaecology</h2><p>Source: Potential_Mapping_Sreeraman_Team · Pediatrics + Gynae sheets</p></div>
+    <span class="src-tag">FILE 3</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><label>Total Hib (TM area)</label><div class="v y">13,437/mo</div><div class="sub">across 8 TMs</div></div>
+    <div class="kpi"><label>Total Rotavirus</label><div class="v t">9,011/mo</div><div class="sub">vaccinations mapped</div></div>
+    <div class="kpi"><label>Top City (Rota)</label><div class="v g">Coimbatore</div><div class="sub">1,449/mo</div></div>
+    <div class="kpi"><label>Total Deliveries</label><div class="v o">5,705/mo</div><div class="sub">220 gynae docs</div></div>
+    <div class="kpi"><label>Highest Gardasil</label><div class="v p">Shaju</div><div class="sub">1,638 units potential</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card s2">
+      <div class="ctitle">Chart 26 — City Pediatric Potential: Top 12 Cities by Rotavirus (units/month)</div>
+      <div class="cw"><canvas id="c8_1" height="260"></canvas></div>
+    </div>
+    <div class="card ct">
+      <div class="ctitle">Chart 27 — TM Pediatric Potential: Newborns vs Hib vs Rotavirus vs Varicella vs Gardasil</div>
+      <div class="cw"><canvas id="c8_2" height="300"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Chart 28 — TM Rotavirus Capture Rate (Rotavirus ÷ Newborns)</div>
+      <div class="cw"><canvas id="c8_3" height="300"></canvas></div>
+      <div class="note">Velmurugan 187.9% — counts referral/cross-territory patients. James leads genuinely at 88.7%. Kiran 37.4% with 2,990 newborns = largest untapped pool in team.</div>
+    </div>
+    <div class="card co s2">
+      <div class="ctitle">Chart 29 — City Gynaecology: Top 12 Cities by Monthly Deliveries</div>
+      <div class="cw"><canvas id="c8_4" height="240"></canvas></div>
+    </div>
+    <div class="card cp s2">
+      <div class="ctitle">TM Gynaecology Coverage Summary</div>
+      <table class="tbl">
+        <tr><th>TM</th><th>Gynae Docs</th><th>Total Del./mo</th><th>Avg Del./Doc</th><th>Efficiency</th></tr>
+        <tr><td>Kiran Kumar</td><td>31</td><td class="y">1,730</td><td class="y">55.8</td><td><span class="pill pg">★ Highest avg</span></td></tr>
+        <tr><td>Kumar Raju</td><td>25</td><td>710</td><td>28.4</td><td><span class="pill pg">Good</span></td></tr>
+        <tr><td>Shaju Parimanathur</td><td>14</td><td>465</td><td>33.2</td><td><span class="pill py">Good (small list)</span></td></tr>
+        <tr><td>P Santoshkumar</td><td>25</td><td>655</td><td>26.2</td><td><span class="pill py">Average</span></td></tr>
+        <tr><td>V Premkumar</td><td>30</td><td>611</td><td>20.4</td><td><span class="pill po">Below avg</span></td></tr>
+        <tr><td>Velmurugan B</td><td>39</td><td>510</td><td>13.1</td><td><span class="pill pr">Low avg — review list</span></td></tr>
+        <tr><td>Samsudeen M J</td><td>26</td><td>484</td><td>18.6</td><td><span class="pill po">Below avg</span></td></tr>
+        <tr><td>James Franklin</td><td>30</td><td>540</td><td>18.0</td><td><span class="pill po">Below avg</span></td></tr>
+      </table>
+      <div class="note">Consultation fee: ₹100 is modal (55 docs), ₹200 (49 docs). Doctors at ₹300–500/consult (50 docs) = premium patient segment → priority Gardasil targets.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// VERIFIED DATA — cross-checked vs source Excel
+// ════════════════════════════════════════
+const MO = ["Jan'17","Feb'17","Mar'17","Apr'17","May'17","Jun'17","Jul'17","Aug'17"];
+const P={y:'#e8ff57',t:'#4dd9f0',g:'#3effa8',r:'#ff5252',o:'#ff9b3d',p:'#c084fc',m:'#60a5fa',mu:'#4e5a78'};
+
+function base(extra={}){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#6b7a9a',font:{size:10,family:'DM Mono'},padding:10,boxWidth:10}},tooltip:{mode:'index',intersect:false,backgroundColor:'#0d1017',borderColor:'#1c2235',borderWidth:1,titleColor:'#d8e2f5',bodyColor:'#6b7a9a',titleFont:{family:'DM Mono'},bodyFont:{family:'DM Mono',size:11}}},
+    scales:{
+      x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},
+      y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}}
+    }, ...extra
+  };
+}
+
+// ── SEC 1: TOPLINE ──
+// Verified from Topline Table sheet rows 6-11, cols 4-11
+new Chart('c1_1',{type:'bar',data:{labels:MO,datasets:[
+  {label:'Primary',data:[50.24,49.89,42.15,60.78,44.05,52.92,91.19,70.84],backgroundColor:P.y+'cc',borderRadius:3,order:2},
+  {label:'Target',data:[59.33,84.55,76.78,69.31,69.35,71.61,73.62,79.5],backgroundColor:'transparent',borderColor:P.t,borderWidth:2,type:'line',order:1,tension:.3,pointRadius:4,pointBackgroundColor:P.t},
+  {label:'Secondary',data:[74.59,68.45,63.13,69.41,60.82,87.05,68.33,78.37],backgroundColor:P.g+'55',borderRadius:3,order:3}
+]},options:base()});
+
+new Chart('c1_2',{type:'bar',data:{labels:MO,datasets:[
+  {label:'Achievement %',data:[84.7,59.0,54.9,87.7,63.5,73.9,123.9,89.0],
+   backgroundColor:[84.7,59.0,54.9,87.7,63.5,73.9,123.9,89.0].map(v=>v>=100?P.g+'cc':v>=80?P.y+'cc':P.r+'cc'),borderRadius:4}
+]},options:{...base(),plugins:{...base().plugins,annotation:{annotations:{line:{type:'line',yMin:100,yMax:100,borderColor:P.g,borderWidth:1,borderDash:[4,4]}}}},scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+new Chart('c1_3',{type:'bar',data:{labels:MO,datasets:[
+  {label:'Inventory (₹L)',data:[82.09,84.11,92.51,96.85,82.53,85.06,122.68,122.95],backgroundColor:P.o+'99',borderRadius:3}
+]},options:base()});
+
+// ── SEC 2: BRANDS ──
+// Verified from individual brand sheets: rows 6(Target),7(Primary),8(Secondary), cols 2,4,6,8,10,12,14
+// Aug primary & secondary: Gardasil and PNX 23 col 16 = Units, not ₹ — correct values from Topline Table col 8
+// Rotateq Aug secondary '32,93' in source = comma-as-decimal → 32.93
+const varTarget=[26.71,32.49,32.92,30.48,30.20,31.68,28.34,31.08];
+const varPri=[18.47,18.10,21.59,32.64,15.86,18.81,38.86,28.19];
+const varSec=[22.76,19.90,21.64,28.62,21.17,24.41,19.85,25.17];
+const rotTarget=[14.69,18.67,22.40,17.88,18.26,18.37,24.45,24.45];
+const rotPri=[16.04,15.42,7.05,13.35,16.23,12.59,28.13,25.11];
+const rotSec=[32.17,26.91,27.07,25.03,22.92,30.06,27.73,32.93];
+const garTarget=[8.89,12.89,9.05,8.45,8.97,8.97,15.01,15.48];
+const garPri=[10.71,9.69,6.95,10.74,2.92,2.85,13.80,7.63];
+const garSec=[12.59,10.96,9.13,9.93,8.30,10.10,11.97,8.92];
+const pnxTarget=[9.02,20.48,12.39,12.50,11.90,12.57,5.81,8.49];
+const pnxPri=[5.01,6.67,6.53,5.66,9.03,18.65,10.37,9.90];
+const pnxSec=[5.78,9.27,4.83,5.32,12.63,22.58,8.78,11.65];
+const varAch=[72.0,55.7,65.6,107.1,52.5,59.4,137.1,90.7];
+const rotAch=[82.6,82.6,31.5,74.7,88.9,68.5,115.1,102.7];
+const garAch=[120.5,75.2,76.8,127.1,32.6,31.8,91.9,49.3];
+const pnxAch=[55.5,32.6,52.7,45.3,75.9,148.4,178.0,116.6];
+
+function brandChart(id,target,primary,secondary,priColor,secColor){
+  new Chart(id,{type:'bar',data:{labels:MO,datasets:[
+    {label:'Primary',data:primary,backgroundColor:priColor+'cc',borderRadius:3,order:2},
+    {label:'Secondary',data:secondary,backgroundColor:secColor+'66',borderRadius:3,order:3},
+    {label:'Target',data:target,type:'line',borderColor:'#ffffff',borderWidth:1.5,borderDash:[4,3],pointRadius:3,pointBackgroundColor:'#ffffff',tension:.3,order:1,fill:false}
+  ]},options:base()});
+}
+brandChart('c2_1',varTarget,varPri,varSec,P.y,P.g);
+brandChart('c2_2',rotTarget,rotPri,rotSec,P.t,P.g);
+brandChart('c2_3',garTarget,garPri,garSec,P.p,P.t);
+brandChart('c2_4',pnxTarget,pnxPri,pnxSec,P.g,P.t);
+
+new Chart('c2_5',{type:'line',data:{labels:MO,datasets:[
+  {label:'Variped',data:varAch,borderColor:P.y,borderWidth:2,tension:.3,pointRadius:4,fill:false},
+  {label:'Rotateq',data:rotAch,borderColor:P.t,borderWidth:2,tension:.3,pointRadius:4,fill:false},
+  {label:'Gardasil',data:garAch,borderColor:P.p,borderWidth:2,tension:.3,pointRadius:4,fill:false},
+  {label:'Pneumovax 23',data:pnxAch,borderColor:P.g,borderWidth:2,tension:.3,pointRadius:4,fill:false}
+]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+// ── SEC 3: Q3 PLANNING ──
+// Verified from Sales Planning sheet rows 3-7
+new Chart('c3_1',{type:'bar',data:{
+  labels:['Rotateq','Variped','Gardasil','Pneumovax','TOTAL'],
+  datasets:[
+    {label:'Q3 Target',data:[74.09,91.39,46.90,21.28,233.66],backgroundColor:P.t+'55',borderColor:P.t,borderWidth:1,borderRadius:3},
+    {label:'Q3 Estimate',data:[83.24,94.36,38.43,28.47,244.50],backgroundColor:P.y+'bb',borderRadius:3}
+  ]},options:base()});
+
+new Chart('c3_2',{type:'bar',data:{
+  labels:['Rotateq','Variped','Gardasil','Pneumovax','TOTAL'],
+  datasets:[{label:'Q3 Est. Achievement %',data:[112.4,103.2,81.9,133.8,104.6],
+    backgroundColor:[112.4,103.2,81.9,133.8,104.6].map(v=>v>=100?P.g+'cc':P.o+'cc'),borderRadius:4}]
+},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+new Chart('c3_3',{type:'bar',data:{
+  labels:['Rotateq','Variped','Gardasil','Pneumovax'],
+  datasets:[
+    {label:"Jul Actual",data:[28.13,38.87,13.80,10.37],backgroundColor:P.g+'cc',borderRadius:3},
+    {label:"Aug Estimate",data:[25.11,28.19,7.63,9.90],backgroundColor:P.y+'cc',borderRadius:3},
+    {label:"Sep Estimate",data:[30.00,27.30,17.00,8.20],backgroundColor:P.t+'cc',borderRadius:3},
+    {label:"Q3 Target",data:[74.09,91.39,46.90,21.28],type:'line',borderColor:P.r,borderWidth:2,borderDash:[4,4],pointRadius:5,pointBackgroundColor:P.r}
+  ]},options:{...base(),plugins:{...base().plugins},scales:{x:{stacked:false,ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}}}}}
+);
+
+// ── SEC 4: TBM SCORECARD ──
+// Verified from Zone Red & Green sheet rows 3-16
+const TBMs=['Kiran','Samsudeen','Kumar','Prem','Velmurugan','James','Santosh','Anil','Shaju'];
+new Chart('c4_1',{type:'bar',data:{labels:TBMs,datasets:[
+  {label:'YTD Ach %',data:[102,102,80,80,72,72,83,102,41],
+   backgroundColor:TBMs.map((_,i)=>[102,102,80,80,72,72,83,102,41][i]>=100?P.g+'cc':P.o+'99'),borderRadius:3},
+  {label:'Month Ach %',data:[78,78,82,82,103,103,102,103,112],
+   type:'line',borderColor:P.y,borderWidth:2,pointRadius:5,pointBackgroundColor:P.y,tension:.2}
+]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+new Chart('c4_2',{type:'bar',data:{labels:TBMs,datasets:[
+  {label:'PCPM (₹L)',data:[10.54,10.54,7.56,7.56,6.56,6.56,6.10,6.20,4.30],
+   backgroundColor:TBMs.map((_,i)=>[10.54,10.54,7.56,7.56,6.56,6.56,6.10,6.20,4.30][i]>=8?P.g+'cc':P.y+'aa'),borderRadius:4,borderWidth:0}
+]},options:base()});
+
+new Chart('c4_3',{type:'bar',data:{labels:TBMs,datasets:[
+  {label:'Gardasil YTD%',data:[101,101,77,77,97,97,68,null,3],backgroundColor:P.p+'99',borderRadius:3},
+  {label:'Rotateq YTD%', data:[125,125,101,101,124,124,87,null,42],backgroundColor:P.t+'99',borderRadius:3},
+  {label:'Variped YTD%', data:[95,95,77,77,83,83,87,null,64],backgroundColor:P.y+'99',borderRadius:3}
+]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+// iSales - verified from iSales sheet rows 3-7, cols 2-7
+const iMo=["Jan","Feb","Mar","Apr","May","Jun"];
+new Chart('c4_4',{type:'line',data:{labels:iMo,datasets:[
+  {label:'Velmurugan',data:[1.00,0.99,0.99,0.99,0.99,0.99],borderColor:P.y,borderWidth:2,tension:.2,pointRadius:4,fill:false},
+  {label:'James',     data:[null,0.95,0.90,0.90,0.90,0.90],borderColor:P.t,borderWidth:2,tension:.2,pointRadius:4,fill:false,spanGaps:false},
+  {label:'Kumar',     data:[0.60,0.90,0.85,0.80,0.90,0.90],borderColor:P.g,borderWidth:2,tension:.2,pointRadius:4,fill:false},
+  {label:'Kiran',     data:[0.88,0.90,0.80,0.75,0.90,0.87],borderColor:P.o,borderWidth:2,tension:.2,pointRadius:4,fill:false},
+  {label:'Samsudeen', data:[0.98,0.98,0.95,0.81,0.98,0.98],borderColor:P.p,borderWidth:2,tension:.2,pointRadius:4,fill:false}
+]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'rgba(255,255,255,.04)'},min:0.5,max:1.05}}}});
+
+// ── SEC 5: VITALIS ABM ──
+// Verified from hq_wise sheet aggregated by abm_hq_name (excluding Mumbai Inst/Third Party)
+const ABMs=['S.Chennai','Cochin','Pune','Coimbatore','Ahmedabad','Mumbai W.','Nasik','Bhopal','Chandigarh','Bangalore','Mumbai S.','Ghaziabad','Jaipur','Kolkata','S.Delhi','Vijayawada','Varanasi','Ludhiana','Bhubaneswar','Calicut','Hyderabad'];
+const abmSale=[31.04,26.39,29.89,27.49,25.82,23.27,24.45,19.69,22.48,23.92,18.36,18.84,10.94,18.24,20.41,14.99,15.18,19.11,12.64,15.61,13.73];
+const abmTgt=[26.06,19.99,27.59,29.54,24.10,23.30,23.18,17.57,25.00,27.93,21.80,19.55,13.17,20.60,25.19,15.45,15.53,24.71,15.80,14.89,18.07];
+const abmAch=[119.1,132.0,108.4,93.0,107.1,99.9,105.5,112.1,89.9,85.6,84.2,96.3,83.1,88.5,81.0,97.0,97.7,77.3,80.0,104.8,76.0];
+const abmGrw=[26.0,38.4,-5.0,30.7,15.3,29.0,0.6,73.2,-2.1,13.9,-20.7,16.0,-22.9,-14.6,33.5,12.8,57.1,5.2,7.1,12.5,11.8];
+const abmPPP=[36.7,55.7,50.5,47.2,48.1,68.6,43.8,51.9,21.5,46.1,53.6,31.6,41.0,72.6,32.9,39.0,37.4,29.4,70.7,83.6,34.7];
+
+// Sort by sale descending
+const sortedIdx=[...Array(21).keys()].sort((a,b)=>abmSale[b]-abmSale[a]);
+new Chart('c5_1',{type:'bar',data:{
+  labels:sortedIdx.map(i=>ABMs[i]),
+  datasets:[
+    {label:'Sale (₹L)',data:sortedIdx.map(i=>abmSale[i]),backgroundColor:sortedIdx.map(i=>abmAch[i]>=100?P.g+'cc':P.o+'99'),borderRadius:3},
+    {label:'Target (₹L)',data:sortedIdx.map(i=>abmTgt[i]),type:'line',borderColor:P.r,borderDash:[3,3],borderWidth:1.5,pointRadius:3,pointBackgroundColor:P.r}
+  ]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},maxRotation:55},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}}}}}
+);
+
+new Chart('c5_2',{type:'bar',data:{
+  labels:ABMs,
+  datasets:[
+    {label:'Achievement %',data:abmAch,backgroundColor:abmAch.map(v=>v>=100?P.g+'cc':v>=85?P.y+'99':P.r+'99'),borderRadius:3,yAxisID:'y'},
+    {label:'YoY Growth %',data:abmGrw,type:'line',borderColor:P.t,borderWidth:2,pointRadius:4,pointBackgroundColor:P.t,tension:.2,yAxisID:'y2'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6b7a9a',font:{size:10,family:'DM Mono'},padding:10,boxWidth:10}},tooltip:{mode:'index',intersect:false}},scales:{
+    x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},maxRotation:55},grid:{color:'rgba(255,255,255,.04)'}},
+    y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'},position:'left',title:{display:true,text:'Ach %',color:'#4e5a78',font:{size:9,family:'DM Mono'}}},
+    y2:{ticks:{color:P.t,font:{size:9,family:'DM Mono'},callback:v=>v+'%'},grid:{display:false},position:'right'}
+  }}}
+);
+
+// PPP Products - verified from ppp sheet grouped by prod
+new Chart('c5_3',{type:'bar',data:{
+  labels:['WARF 5mg (15s)','WARF 2mg (15s)','RETEFAST Kit','WARF 3mg (10s)','WARF 1mg Tabs'],
+  datasets:[
+    {label:'MTD Sale (₹L)',data:[61.35,54.60,44.21,29.25,17.14],backgroundColor:P.y+'cc',borderRadius:4},
+    {label:'Target (₹L)', data:[57.68,47.19,51.24,24.28,15.60],backgroundColor:P.t+'55',borderColor:P.t,borderWidth:1,borderRadius:4},
+    {label:'Last Year (₹L)',data:[55.78,46.71,60.81,24.23,14.99],backgroundColor:P.mu+'55',borderRadius:4}
+  ]},options:base()});
+
+// ── SEC 6: GROWTH MANAGEMENT ──
+// Verified from Growth mgmt sheet rows 5+, cols 1-8 (Rotateq) and cols 10-18 (Variped side — empty)
+// Growth mgmt (2) cols 1-8 (Gardasil)
+const rotGrowDocs=['Antony','Shanmugam','SAJID HASHIM','Manickraj','Hema nat.','Sethupathy','Kalanidhi','Kanimozhi','Jayshree','Natarajan','Aswath*','Srimathi','Fousiya','PRAMOD W.','M.A.SAJITH','DR.KICHU G.','Senthil','Rajkumar','Angaline','Subramanian','Priya','Senthilnathan','Deepak S.','Zuber','Krishnasamy'];
+const rotGrowPot=[50,50,50,30,30,30,30,20,30,30,20,30,30,40,30,30,20,20,20,20,20,20,20,20,20];
+const rotGrowMSD=[6,3,0,6,0,12,12,20,12,12,0,2,0,0,0,10,6,6,6,0,6,12,12,12,6];
+const rotGrowAddon=[25,25,null,30,30,30,30,30,25,30,null,10,10,null,null,null,20,20,20,20,20,20,20,20,15];
+
+new Chart('c6_1',{type:'bar',data:{labels:rotGrowDocs,datasets:[
+  {label:'Total Potential',data:rotGrowPot,backgroundColor:P.t+'33',borderColor:P.t,borderWidth:1,borderRadius:3},
+  {label:'Current MSD',data:rotGrowMSD,backgroundColor:P.g+'cc',borderRadius:3},
+  {label:'Add-on Target',data:rotGrowAddon,type:'line',borderColor:P.y,borderDash:[3,3],borderWidth:1.5,pointRadius:4,pointBackgroundColor:P.y,spanGaps:true}
+]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:8,family:'DM Mono'},maxRotation:55},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+new Chart('c6_2',{type:'doughnut',data:{
+  labels:['Rotarix (22)','Rotavac (14)','Rotasure (6)','Rotateq (5)'],
+  datasets:[{data:[22,14,6,5],backgroundColor:[P.r+'cc',P.o+'cc',P.y+'cc',P.t+'cc'],borderColor:'#07090f',borderWidth:2,hoverOffset:8}]
+},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#6b7a9a',font:{size:11,family:'DM Mono'},padding:12}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${((ctx.parsed/47)*100).toFixed(1)}%`}}}}});
+
+// Gardasil growth - verified from Growth mgmt (2) sheet rows 5-18
+const garGrowDocs=['Indira T.','Atima','Ashwath','Nirmala','ABDUL M.','Jayshree','Uttaraj','JOSEPH P.','K.M.ANAND','Gayathiri','Narmadha','Suma','Savitha','Devasena','JEESON U.','ALEX MANI','C.C.MENON','M.NARAYANAN','JOHNY.V.F','SHERLY J.','Velam','Nallichandra','SANAM B.','Anand'];
+const garGrowPot=[70,60,25,30,25,20,15,15,15,15,15,20,10,15,10,10,10,10,10,10,5,5,5,4];
+const garGrowAddon=[25,60,40,15,null,20,20,null,null,15,15,10,20,25,null,null,null,null,null,null,10,5,null,4];
+
+new Chart('c6_3',{type:'bar',data:{labels:garGrowDocs,datasets:[
+  {label:'Total Potential',data:garGrowPot,backgroundColor:P.o+'44',borderColor:P.o,borderWidth:1,borderRadius:3},
+  {label:'Add-on Target',data:garGrowAddon,backgroundColor:P.o+'cc',borderRadius:3,spanGaps:true}
+]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:8,family:'DM Mono'},maxRotation:55},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+// ── SEC 7: CHANNEL ──
+// Verified from Stockist mgmt1 sheet rows 6-8 (Rotateq), 11-13 (Variped); Corp Hosp sheet
+const stkLabels=['Vac.Junc-CBE','Deepa-CBE','Palepu-CBE','Purani-CBE','Shree-CBE','Venkat-Salem','Venkat-Dharma','Vac.Fort-Karur','Deepa-Erode','Purani-Erode','Lotus-Erode','Vac.Point-MDU','Vac.Ctr-MDU','Dr.Vac-MDU','MDU Hosp.Sup','MDU Vaccines','Vac.Fort-Tanjore','Lifeon-Cochin','Quality-Cochin','Amy-TVM','Shree-TVM','New Life-Kollam'];
+const rotP=[240,0,450,120,150,150,240,120,600,150,120,300,null,450,120,120,270,300,270,150,300,null];
+const rotS=[200,590,402,260,20,145,351,142,531,null,133,453,10,150,132,105,234,339,148,157,90,77];
+const rotI=[139,409,807,48,130,92,67,120,238,275,138,316,94,470,73,102,292,97,198,165,216,145];
+const varP=[0,null,300,null,100,100,null,0,400,100,12,200,null,300,null,null,100,200,100,100,200,100];
+const varS=[139,191,313,73,33,72,147,46,233,38,46,90,3,95,11,1,71,189,28,125,65,148];
+const varI=[179,318,491,147,100,182,97,69,353,97,108,705,35,340,44,70,181,172,160,135,165,50];
+
+function stockistChart(id,P_arr,S_arr,I_arr,pColor,sColor,iColor){
+  new Chart(id,{type:'bar',data:{labels:stkLabels,datasets:[
+    {label:'Primary',data:P_arr,backgroundColor:pColor+'cc',borderRadius:2},
+    {label:'Secondary',data:S_arr,backgroundColor:sColor+'cc',borderRadius:2},
+    {label:'Inventory',data:I_arr,backgroundColor:iColor+'99',borderRadius:2}
+  ]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:8,family:'DM Mono'},maxRotation:55},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}}}}}
+  );
+}
+stockistChart('c7_1',rotP,rotS,rotI,P.y,P.t,P.r);
+stockistChart('c7_2',varP,varS,varI,P.g,P.t,P.o);
+
+// Corp Hosp - verified from Corp Hosp sheet
+new Chart('c7_3',{type:'bar',data:{
+  labels:['KMCH\n(CBE)','GKNM\n(CBE)','Craft\n(Kodungallur)','KIMS\n(Trivandrum)','Aster\n(Cochin)'],
+  datasets:[
+    {label:'Potential',data:[200,150,300,500,200],backgroundColor:P.t+'33',borderColor:P.t,borderWidth:1,borderRadius:3},
+    {label:'MSD',data:[120,20,200,200,60],backgroundColor:P.g+'cc',borderRadius:3},
+    {label:'Competitor',data:[30,120,100,300,140],backgroundColor:P.r+'cc',borderRadius:3}
+  ]},options:base()});
+
+new Chart('c7_4',{type:'bar',data:{
+  labels:['KMCH','GKNM','Craft','KIMS','Aster'],
+  datasets:[
+    {label:'Potential',data:[230,80,200,300,100],backgroundColor:P.o+'33',borderColor:P.o,borderWidth:1,borderRadius:3},
+    {label:'MSD',data:[160,60,100,200,20],backgroundColor:P.g+'cc',borderRadius:3},
+    {label:'Competitor',data:[70,20,100,100,80],backgroundColor:P.r+'cc',borderRadius:3}
+  ]},options:base()});
+
+// Pneumovax trend - verified from Dr. con Trend (2) sheet
+new Chart('c7_5',{type:'bar',data:{
+  labels:['Giri','Rajesh','Amrita Cochin','Aster medicity','Anupama','Vivek pathak','Arjun'],
+  datasets:[
+    {label:'Potential/mo',data:[120,100,120,100,60,30,50],backgroundColor:P.m+'33',borderColor:P.m,borderWidth:1,borderRadius:3},
+    {label:'Apr',data:[80,80,80,50,50,30,50],backgroundColor:P.m+'99',borderRadius:3},
+    {label:'May',data:[70,80,80,50,50,30,null],backgroundColor:P.y+'99',borderRadius:3,spanGaps:false},
+    {label:'Jun',data:[30,120,80,50,50,30,30],backgroundColor:P.g+'99',borderRadius:3},
+    {label:'Jul',data:[30,100,80,50,50,30,30],backgroundColor:P.o+'99',borderRadius:3}
+  ]},options:base()});
+
+// ── SEC 8: POTENTIAL MAPPING ──
+// Verified from Potential_Mapping · Pediatrics sheet (header row 2) + Gynae sheet
+const topCities=['Coimbatore','Madurai','Erode','Salem','Thiruvananthapuram','Kottayam','Thanjavur','Trivandrum','Karur','Tirupur','Thrissur','Dindigul'];
+const cityNewb=[3215,665,840,915,744,475,300,361,320,415,320,150];
+const cityHib=[2545,1100,760,745,744,475,330,361,245,350,320,285];
+const cityRota=[1449,790,675,590,419,325,260,231,200,200,200,180];
+const cityVaric=[1147,557,425,325,474,196,205,247,122,162,147,125];
+const cityGar=[390,350,241,90,726,112,75,336,17,59,79,70];
+
+new Chart('c8_1',{type:'bar',data:{labels:topCities,datasets:[
+  {label:'Hib',data:cityHib,backgroundColor:P.t+'cc',borderRadius:2},
+  {label:'Rotavirus',data:cityRota,backgroundColor:P.y+'cc',borderRadius:2},
+  {label:'Varicella',data:cityVaric,backgroundColor:P.g+'99',borderRadius:2},
+  {label:'Gardasil',data:cityGar,backgroundColor:P.p+'99',borderRadius:2}
+]},options:{...base(),plugins:{...base().plugins},scales:{x:{stacked:false,ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},maxRotation:45},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+const TM_NAMES=['James','Kiran','Kumar','Santosh','Samsudeen','Shaju','Premkumar','Velmurugan'];
+const tmNewb=[1465,2990,2035,2025,1920,1796,1355,455];
+const tmHib=[1660,2315,1535,2025,1551,1796,1210,1345];
+const tmRota=[1300,1119,1190,1399,1042,1021,1085,855];
+const tmVaric=[1027,863,720,1012,745,1072,690,535];
+const tmGar=[453,371,186,591,228,1638,363,423];
+
+new Chart('c8_2',{type:'bar',data:{labels:TM_NAMES,datasets:[
+  {label:'Newborns',data:tmNewb,backgroundColor:P.mu+'88',borderRadius:3},
+  {label:'Hib',data:tmHib,backgroundColor:P.t+'cc',borderRadius:3},
+  {label:'Rotavirus',data:tmRota,backgroundColor:P.y+'cc',borderRadius:3},
+  {label:'Varicella',data:tmVaric,backgroundColor:P.g+'99',borderRadius:3},
+  {label:'Gardasil',data:tmGar,backgroundColor:P.p+'99',borderRadius:3}
+]},options:base()});
+
+const captureRate=[88.7,37.4,58.5,69.1,54.3,56.8,80.1,187.9];
+new Chart('c8_3',{type:'bar',data:{labels:TM_NAMES,datasets:[
+  {label:'Capture Rate %',data:captureRate,
+   backgroundColor:captureRate.map(v=>v>100?P.p+'cc':v>=70?P.g+'cc':v>=50?P.y+'cc':P.r+'cc'),borderRadius:4}
+]},options:{...base(),scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+
+// City Gynae - verified from Gynae sheet
+new Chart('c8_4',{type:'bar',data:{
+  labels:['Coimbatore','Madurai','Udumalpet','Salem','Cochin','Erode','Thiruvananthapuram','Ooty','Thanjavur','Pollachi','Tirupur','Karur'],
+  datasets:[{label:'Monthly Deliveries',data:[1064,485,485,330,325,324,275,245,205,200,155,150],
+   backgroundColor:['#4dd9f0cc','#4dd9f0aa','#4dd9f0aa','#4dd9f090','#4dd9f090','#4dd9f090','#4dd9f080','#4dd9f080','#4dd9f070','#4dd9f070','#4dd9f060','#4dd9f060'],borderRadius:3}]
+},options:{...base(),indexAxis:'y',scales:{x:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4e5a78',font:{size:9,family:'DM Mono'}},grid:{color:'rgba(255,255,255,.03)'}}}}});
+
+// ── TAB NAVIGATION ──
+function show(n){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.querySelectorAll('.sec').forEach((s,i)=>s.classList.toggle('active',i===n));
+}
+</script>
+</body>
+</html>
